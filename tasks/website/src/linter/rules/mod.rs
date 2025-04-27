@@ -8,10 +8,11 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use doc_page::render_rule_docs_page;
+use doc_page::Context;
 use html::HtmlWriter;
-use oxc_linter::table::RuleTable;
+use oxc_linter::{Oxlintrc, table::RuleTable};
 use pico_args::Arguments;
+use schemars::{SchemaGenerator, r#gen::SchemaSettings};
 use table::render_rules_table;
 
 const HELP: &str = "
@@ -57,7 +58,8 @@ pub fn print_rules(mut args: Arguments) {
             }
         });
 
-    let table = RuleTable::new();
+    let mut generator = SchemaGenerator::new(SchemaSettings::default());
+    let table = RuleTable::new(Some(&mut generator));
 
     if let Some(table_path) = table_path {
         let table_path = pwd.join(table_path).canonicalize().unwrap();
@@ -78,13 +80,19 @@ pub fn print_rules(mut args: Arguments) {
             !rules_dir.is_file(),
             "Cannot write rule docs to a file. Please specify a directory."
         );
-        write_rule_doc_pages(&table, &rules_dir, git_ref.unwrap_or("main".to_string()).as_str());
+        write_rule_doc_pages(
+            generator,
+            &table,
+            &rules_dir,
+            git_ref.unwrap_or("main".to_string()).as_str(),
+        );
     }
 
     println!("Done.");
 }
 
-fn write_rule_doc_pages(table: &RuleTable, outdir: &Path, git_ref: &str) {
+fn write_rule_doc_pages(g: SchemaGenerator, table: &RuleTable, outdir: &Path, git_ref: &str) {
+    let mut ctx = Context::new::<Oxlintrc>(g);
     for rule in table.sections.iter().flat_map(|section| &section.rows) {
         let plugin_path = outdir.join(&rule.plugin);
         fs::create_dir_all(&plugin_path).unwrap();
@@ -93,7 +101,7 @@ fn write_rule_doc_pages(table: &RuleTable, outdir: &Path, git_ref: &str) {
             fs::remove_file(&page_path).unwrap();
         }
         println!("{}", page_path.display());
-        let docs = render_rule_docs_page(rule, git_ref).unwrap();
+        let docs = ctx.render_rule_docs_page(rule, git_ref).unwrap();
         fs::write(&page_path, docs).unwrap();
     }
 }
