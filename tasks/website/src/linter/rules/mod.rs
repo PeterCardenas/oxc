@@ -1,3 +1,4 @@
+#![expect(clippy::print_stderr)]
 mod doc_page;
 mod html;
 mod table;
@@ -64,13 +65,13 @@ pub fn print_rules(mut args: Arguments) {
     if let Some(table_path) = table_path {
         let table_path = pwd.join(table_path).canonicalize().unwrap();
 
-        println!("Rendering rules table...");
+        eprintln!("Rendering rules table...");
         let rules_table = render_rules_table(&table, prefix.as_ref());
         fs::write(table_path, rules_table).unwrap();
     }
 
     if let Some(rules_dir) = rules_dir {
-        println!("Rendering rule doc pages...");
+        eprintln!("Rendering rule doc pages...");
         let rules_dir = pwd.join(rules_dir);
         if !rules_dir.exists() {
             fs::create_dir_all(&rules_dir).unwrap();
@@ -88,7 +89,7 @@ pub fn print_rules(mut args: Arguments) {
         );
     }
 
-    println!("Done.");
+    eprintln!("Done.");
 }
 
 fn write_rule_doc_pages(g: SchemaGenerator, table: &RuleTable, outdir: &Path, git_ref: &str) {
@@ -100,7 +101,7 @@ fn write_rule_doc_pages(g: SchemaGenerator, table: &RuleTable, outdir: &Path, gi
         if page_path.exists() {
             fs::remove_file(&page_path).unwrap();
         }
-        println!("{}", page_path.display());
+
         let docs = ctx.render_rule_docs_page(rule, git_ref).unwrap();
         fs::write(&page_path, docs).unwrap();
     }
