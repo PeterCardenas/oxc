@@ -54,7 +54,7 @@ source: crates/oxc_linter/src/tester.rs
    ·             ────────────
  4 │             
    ╰────
-  help: Set "allowWithDecorators": true in your config to allow empty decorated classes
+  help: Set "allowWithDecorator": true in your config to allow empty decorated classes
 
   ⚠ typescript-eslint(no-extraneous-class): Unexpected empty class.
    ╭─[no_extraneous_class.tsx:6:4]
@@ -63,7 +63,7 @@ source: crates/oxc_linter/src/tester.rs
    ·             ────────────
  7 │             
    ╰────
-  help: Set "allowWithDecorators": true in your config to allow empty decorated classes
+  help: Set "allowWithDecorator": true in your config to allow empty decorated classes
 
   ⚠ typescript-eslint(no-extraneous-class): Unexpected class with only a constructor.
    ╭─[no_extraneous_class.tsx:3:10]
@@ -81,11 +81,9 @@ source: crates/oxc_linter/src/tester.rs
    ╰────
 
   ⚠ typescript-eslint(no-extraneous-class): Unexpected class with only static properties.
-   ╭─[no_extraneous_class.tsx:2:19]
- 1 │ 
- 2 │             abstract class Foo {
-   ·                            ───
- 3 │               static property: string;
+   ╭─[no_extraneous_class.tsx:1:16]
+ 1 │ abstract class Foo { static property: string; }
+   ·                ───
    ╰────
   help: Try using standalone functions instead of static methods
 

@@ -86,7 +86,9 @@ declare_oxc_lint!(
 fn empty_class_diagnostic(span: Span, has_decorators: bool) -> OxcDiagnostic {
     let diagnostic = OxcDiagnostic::warn("Unexpected empty class.").with_label(span);
     if has_decorators {
-        diagnostic.with_help(r#"Set "allowWithDecorators": true in your config to allow empty decorated classes"#)
+        diagnostic.with_help(
+            r#"Set "allowWithDecorator": true in your config to allow empty decorated classes"#,
+        )
     } else {
         diagnostic
     }
@@ -145,11 +147,16 @@ impl Rule for NoExtraneousClass {
             [] => {
                 if !self.allow_empty {
                     let mut span = class.span;
+                    #[expect(clippy::checked_conversions, clippy::cast_possible_truncation)]
                     if let Some(decorator) = class.decorators.last() {
                         span = Span::new(decorator.span.end, span.end);
-                        if let Some(start) = ctx.source_range(span).find('c') {
-                            span = span.shrink_left(start as u32);
-                        }
+                        // NOTE: there will always be a 'c' because of 'class' keyword.
+                        let start = ctx.source_range(span).find('c').unwrap();
+                        // SAFETY: source files are guaranteed to be less than
+                        // 2^32 characters, so conversion will never fail. Using
+                        // unchecked assert here removes a useless bounds check.
+                        unsafe { std::hint::assert_unchecked(start <= u32::MAX as usize) };
+                        span = span.shrink_left(start as u32);
                     }
                     ctx.diagnostic(empty_class_diagnostic(span, !class.decorators.is_empty()));
                 }
@@ -200,14 +207,7 @@ fn test() {
         ),
         ("class Foo { constructor(public bar: string) {} }", None),
         ("class Foo {}", Some(json!([{ "allowEmpty": true }]))),
-        (
-            "
-			class Foo {
-			  constructor() {}
-			}
-			      ",
-            Some(json!([{ "allowConstructorOnly": true }])),
-        ),
+        ("class Foo { constructor() {} }", Some(json!([{ "allowConstructorOnly": true }]))),
         (
             "
 			export class Bar {
@@ -226,16 +226,11 @@ fn test() {
 			    return 'I am foo!';
 			  }
 			}
-			    ",
+		    ",
             None,
         ),
-        (
-            "
-			@FooDecorator
-			class Foo {}
-            ",
-            Some(json!([{ "allowWithDecorator": true }])),
-        ),
+        ("@FooDecorator class Foo {} ", None), // allowWithDecorator is on by default
+        ("@FooDecorator class Foo {} ", Some(json!([{ "allowWithDecorator": true }]))),
         (
             "
 			@FooDecorator
@@ -317,18 +312,11 @@ fn test() {
 			    });
 			  }
 			}
-			      ",
+			",
             Some(json!([{ "allowWithDecorator": false }])),
         ),
         ("abstract class Foo {}", None),
-        (
-            "
-			abstract class Foo {
-			  static property: string;
-			}
-            ",
-            None,
-        ),
+        ("abstract class Foo { static property: string; }", None),
         ("abstract class Foo { constructor() {} }", None),
     ];
 
