@@ -29,6 +29,7 @@ use crate::{
         separated::FormatSeparatedIter,
         token::number::{NumberFormatOptions, format_number_token},
         trivia::FormatLeadingComments,
+        write,
     },
     options::{FormatTrailingCommas, QuoteProperties, TrailingSeparator},
     parentheses::NeedsParentheses,
@@ -2528,24 +2529,22 @@ impl<'a> FormatWrite<'a> for TSTypeParameter<'a> {
 
 impl<'a> FormatWrite<'a> for TSTypeParameterDeclaration<'a> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        Ok(())
+        write!(f, ["<", self.params, ">"])
     }
 }
 
 impl<'a> FormatWrite<'a> for TSTypeAliasDeclaration<'a> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
+        let assignment_like = format_with(|f| {
+            write!(f, [self.id, self.type_parameters, space(), "=", space(), self.type_annotation])
+        });
         write!(
             f,
             [
                 self.declare.then_some("declare "),
                 "type",
                 space(),
-                self.id,
-                self.type_parameters,
-                space(),
-                "=",
-                space(),
-                self.type_annotation,
+                group(&assignment_like),
                 OptionalSemicolon
             ]
         )
@@ -2653,12 +2652,45 @@ impl<'a> FormatWrite<'a> for TSInterfaceDeclaration<'a> {
 
 impl<'a> FormatWrite<'a> for TSInterfaceBody<'a> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
-        Ok(())
+        // let last_index = self.body.len().saturating_sub(1);
+        let source_text = f.context().source_text();
+        let mut joiner = f.join_nodes_with_soft_line();
+        for (index, sig) in self.body.iter().enumerate() {
+            joiner.entry(sig.span(), source_text, sig);
+        }
+        joiner.finish()
     }
 }
 
 impl<'a> FormatWrite<'a> for TSPropertySignature<'a> {
     fn write(&self, f: &mut Formatter<'_, 'a>) -> FormatResult<()> {
+        if self.readonly {
+            write!(f, "readonly")?;
+        }
+        if self.computed {
+            write!(f, [space(), "[", self.key, "]"])?;
+        } else {
+            match &self.key {
+                PropertyKey::StaticIdentifier(key) => {
+                    write!(f, self.key)?;
+                }
+                PropertyKey::PrivateIdentifier(key) => {
+                    write!(f, self.key)?;
+                }
+                PropertyKey::StringLiteral(key) => {
+                    write!(f, self.key)?;
+                }
+                key => {
+                    write!(f, key)?;
+                }
+            }
+        }
+        if self.optional {
+            write!(f, "?")?;
+        }
+        if let Some(type_annotation) = &self.type_annotation {
+            write!(f, [":", space(), type_annotation])?;
+        }
         Ok(())
     }
 }
@@ -2924,15 +2956,14 @@ impl<'a> FormatWrite<'a> for TSMappedType<'a> {
                 if let Some(name_type) = &name_type {
                     write!(f, [space(), "as", space(), name_type])?;
                 }
-                write!(f, "]")
+                write!(f, "]")?;
+                match self.optional {
+                    Some(TSMappedTypeModifierOperator::True) => write!(f, "?"),
+                    Some(TSMappedTypeModifierOperator::Plus) => write!(f, "+?"),
+                    Some(TSMappedTypeModifierOperator::Minus) => write!(f, "-?"),
+                    None => Ok(()),
+                }
             });
-
-            match self.optional {
-                Some(TSMappedTypeModifierOperator::True) => write!(f, "?")?,
-                Some(TSMappedTypeModifierOperator::Plus) => write!(f, "+?")?,
-                Some(TSMappedTypeModifierOperator::Minus) => write!(f, "-?")?,
-                None => {}
-            }
 
             write!(f, [space(), group(&format_inner_inner)])?;
             if let Some(type_annotation) = &self.type_annotation {
