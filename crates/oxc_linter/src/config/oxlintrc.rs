@@ -3,6 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use rustc_hash::FxHashMap;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
@@ -140,6 +141,56 @@ impl Oxlintrc {
         config.path = path.to_path_buf();
 
         Ok(config)
+    }
+
+    /// Merges two [Oxlintrc] files together
+    /// [Self] takes priority over `other`
+    #[must_use]
+    pub fn merge(&self, other: Oxlintrc) -> Oxlintrc {
+        let mut categories = other.categories.clone();
+        categories.extend(self.categories.iter());
+
+        let rules = self
+            .rules
+            .rules
+            .iter()
+            .chain(&other.rules.rules)
+            .fold(FxHashMap::default(), |mut rules_set, rule| {
+                if rules_set.contains_key(&(&rule.plugin_name, &rule.rule_name)) {
+                    return rules_set;
+                }
+                rules_set.insert((&rule.plugin_name, &rule.rule_name), rule);
+                rules_set
+            })
+            .values()
+            .map(|rule| (**rule).clone())
+            .collect::<Vec<_>>();
+
+        let settings = self.settings.clone();
+        let env = self.env.clone();
+        let globals = self.globals.clone();
+
+        let mut overrides = self.overrides.clone();
+        overrides.extend(other.overrides);
+
+        Oxlintrc {
+            plugins: other.plugins.union(self.plugins),
+            categories,
+            rules: OxlintRules::new(rules),
+            settings,
+            env,
+            globals,
+            overrides,
+            path: self.path.clone(),
+            ignore_patterns: self
+                .ignore_patterns
+                .clone()
+                .iter()
+                .chain(&other.ignore_patterns)
+                .map(std::string::ToString::to_string)
+                .collect::<Vec<_>>(),
+            extends: self.extends.clone(),
+        }
     }
 }
 
