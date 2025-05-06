@@ -234,7 +234,8 @@ impl<'a> Traverse<'a> for TypeScriptAnnotations<'a, '_> {
                     && !prop.declare
                     && !(self.remove_class_fields_without_initializer
                         && prop.value.is_none()
-                        && prop.decorators.is_empty())
+                        && prop.decorators.is_empty()
+                        && !matches!(prop.key, PropertyKey::PrivateIdentifier(_)))
             }
             ClassElement::AccessorProperty(prop) => {
                 matches!(prop.r#type, AccessorPropertyType::AccessorProperty)

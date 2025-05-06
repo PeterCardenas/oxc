@@ -1,6 +1,6 @@
 commit: 578ac4df
 
-Passed: 154/250
+Passed: 154/251
 
 # All Passed:
 * babel-plugin-transform-class-static-block
@@ -44,7 +44,7 @@ after transform: SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), R
 rebuilt        : SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), ReferenceId(10)]
 
 
-# babel-plugin-transform-typescript (7/23)
+# babel-plugin-transform-typescript (7/24)
 * class-property-definition/input.ts
 Unresolved references mismatch:
 after transform: ["const"]
@@ -392,6 +392,11 @@ rebuilt        : SymbolId(2): []
 
 * ts-declaration-empty-output/input.d.ts
 x Output mismatch
+
+* ts-private-field-with-remove-class-fields-without-initializer/input.ts
+Unresolved references mismatch:
+after transform: ["ArrayBufferView", "Transferable", "WeakMap", "babelHelpers", "kTransferable", "kValue"]
+rebuilt        : ["WeakMap", "babelHelpers", "kTransferable", "kValue"]
 
 
 # babel-plugin-transform-react-jsx (42/45)
