@@ -117,7 +117,7 @@ impl<'a> Traverse<'a> for TypeScript<'a, '_> {
 
     fn enter_class(&mut self, class: &mut Class<'a>, ctx: &mut TraverseCtx<'a>) {
         self.annotations.enter_class(class, ctx);
-        Self::transform_class(class, ctx);
+        self.transform_class(class, ctx);
     }
 
     fn exit_class(&mut self, class: &mut Class<'a>, ctx: &mut TraverseCtx<'a>) {

@@ -1,6 +1,6 @@
 commit: 578ac4df
 
-Passed: 152/251
+Passed: 151/252
 
 # All Passed:
 * babel-plugin-transform-class-static-block
@@ -44,7 +44,7 @@ after transform: SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), R
 rebuilt        : SymbolId(0): [ReferenceId(0), ReferenceId(2), ReferenceId(6), ReferenceId(10)]
 
 
-# babel-plugin-transform-typescript (4/23)
+# babel-plugin-transform-typescript (4/24)
 * allow-declare-fields-false/input.ts
 Unresolved references mismatch:
 after transform: ["dce"]
@@ -404,9 +404,53 @@ rebuilt        : []
 x Output mismatch
 
 * use-define-for-class-fields/input.ts
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(3)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(3)]
+Scope children mismatch:
+after transform: ScopeId(1): []
+rebuilt        : ScopeId(1): [ScopeId(2)]
+Scope flags mismatch:
+after transform: ScopeId(3): ScopeFlags(Function | Constructor)
+rebuilt        : ScopeId(2): ScopeFlags(StrictMode | Function | Constructor)
+Scope parent mismatch:
+after transform: ScopeId(3): Some(ScopeId(0))
+rebuilt        : ScopeId(2): Some(ScopeId(1))
 Unresolved references mismatch:
 after transform: ["dce"]
 rebuilt        : []
+
+* use-define-for-class-fields-without-class-properties/input.ts
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(4), ScopeId(5), ScopeId(6), ScopeId(7)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(4), ScopeId(7)]
+Scope children mismatch:
+after transform: ScopeId(1): []
+rebuilt        : ScopeId(1): [ScopeId(2), ScopeId(3)]
+Scope flags mismatch:
+after transform: ScopeId(6): ScopeFlags(Function | Constructor)
+rebuilt        : ScopeId(2): ScopeFlags(StrictMode | Function | Constructor)
+Scope parent mismatch:
+after transform: ScopeId(6): Some(ScopeId(0))
+rebuilt        : ScopeId(2): Some(ScopeId(1))
+Scope flags mismatch:
+after transform: ScopeId(5): ScopeFlags(ClassStaticBlock)
+rebuilt        : ScopeId(3): ScopeFlags(StrictMode | ClassStaticBlock)
+Scope parent mismatch:
+after transform: ScopeId(5): Some(ScopeId(0))
+rebuilt        : ScopeId(3): Some(ScopeId(1))
+Scope children mismatch:
+after transform: ScopeId(2): [ScopeId(3)]
+rebuilt        : ScopeId(4): [ScopeId(5), ScopeId(6)]
+Scope flags mismatch:
+after transform: ScopeId(7): ScopeFlags(ClassStaticBlock)
+rebuilt        : ScopeId(5): ScopeFlags(StrictMode | ClassStaticBlock)
+Scope parent mismatch:
+after transform: ScopeId(7): Some(ScopeId(0))
+rebuilt        : ScopeId(5): Some(ScopeId(4))
+Unresolved references mismatch:
+after transform: ["console", "dce", "x", "y", "z"]
+rebuilt        : ["console", "y"]
 
 
 # babel-plugin-transform-react-jsx (42/45)
@@ -439,7 +483,7 @@ after transform: SymbolId(4): ScopeId(1)
 rebuilt        : SymbolId(5): ScopeId(4)
 
 
-# legacy-decorators (4/73)
+# legacy-decorators (3/73)
 * oxc/metadata/bound-type-reference/input.ts
 Symbol reference IDs mismatch for "BoundTypeReference":
 after transform: SymbolId(0): [ReferenceId(1), ReferenceId(3), ReferenceId(4), ReferenceId(5), ReferenceId(6)]
@@ -512,6 +556,20 @@ rebuilt        : SymbolId(2): Span { start: 0, end: 0 }
 Symbol span mismatch for "C":
 after transform: SymbolId(3): Span { start: 0, end: 0 }
 rebuilt        : SymbolId(3): Span { start: 106, end: 107 }
+
+* oxc/use-define-for-class-fields/input.ts
+Scope children mismatch:
+after transform: ScopeId(0): [ScopeId(1), ScopeId(2), ScopeId(3)]
+rebuilt        : ScopeId(0): [ScopeId(1), ScopeId(3)]
+Scope children mismatch:
+after transform: ScopeId(1): []
+rebuilt        : ScopeId(1): [ScopeId(2)]
+Scope flags mismatch:
+after transform: ScopeId(3): ScopeFlags(Function | Constructor)
+rebuilt        : ScopeId(2): ScopeFlags(StrictMode | Function | Constructor)
+Scope parent mismatch:
+after transform: ScopeId(3): Some(ScopeId(0))
+rebuilt        : ScopeId(2): Some(ScopeId(1))
 
 * oxc/with-class-private-properties/input.ts
 Symbol span mismatch for "C":
