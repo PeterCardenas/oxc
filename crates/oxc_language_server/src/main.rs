@@ -11,9 +11,9 @@ use tower_lsp_server::{
     lsp_types::{
         CodeActionParams, CodeActionResponse, ConfigurationItem, Diagnostic,
         DidChangeConfigurationParams, DidChangeTextDocumentParams, DidChangeWatchedFilesParams,
-        DidCloseTextDocumentParams, DidOpenTextDocumentParams, DidSaveTextDocumentParams,
-        ExecuteCommandParams, InitializeParams, InitializeResult, InitializedParams, ServerInfo,
-        Uri, WorkspaceEdit,
+        DidChangeWorkspaceFoldersParams, DidCloseTextDocumentParams, DidOpenTextDocumentParams,
+        DidSaveTextDocumentParams, ExecuteCommandParams, InitializeParams, InitializeResult,
+        InitializedParams, ServerInfo, Uri, WorkspaceEdit,
     },
 };
 // #
@@ -279,6 +279,44 @@ impl LanguageServer for Backend {
             .collect::<Vec<_>>();
 
         self.publish_all_diagnostics(x).await;
+    }
+
+    async fn did_change_workspace_folders(&self, params: DidChangeWorkspaceFoldersParams) {
+        let mut workers = self.workspace_workers.lock().await;
+        let mut cleared_diagnostics = vec![];
+
+        for folder in params.event.removed {
+            let Some((index, worker)) = workers
+                .iter()
+                .enumerate()
+                .find(|(_, worker)| worker.is_responsible_for_uri(&folder.uri))
+            else {
+                continue;
+            };
+            cleared_diagnostics.extend(worker.get_clear_diagnostics().await);
+            workers.remove(index);
+        }
+
+        self.publish_all_diagnostics(&cleared_diagnostics).await;
+
+        if self.capabilities.get().is_some_and(|capabilities| capabilities.workspace_configuration)
+        {
+            let _configurations = self
+                .request_workspace_configuration(
+                    params.event.added.iter().map(|w| &w.uri).collect(),
+                )
+                .await;
+
+            for (_index, folder) in params.event.added.iter().enumerate() {
+                // ToDo
+                workers.push(WorkspaceWorker::new(&folder.uri));
+            }
+        } else {
+            for folder in params.event.added {
+                // ToDo
+                workers.push(WorkspaceWorker::new(&folder.uri));
+            }
+        }
     }
 
     async fn did_save(&self, params: DidSaveTextDocumentParams) {
