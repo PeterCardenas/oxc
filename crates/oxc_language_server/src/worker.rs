@@ -1,7 +1,7 @@
 use std::{path::PathBuf, str::FromStr, vec};
 
 use log::{debug, info};
-use oxc_linter::{ConfigStore, ConfigStoreBuilder, Oxlintrc};
+use oxc_linter::{Config, ConfigStoreBuilder, Oxlintrc};
 use rustc_hash::FxBuildHasher;
 use tokio::sync::{Mutex, OnceCell, RwLock};
 use tower_lsp_server::{
@@ -23,7 +23,7 @@ pub struct WorkspaceWorker {
     server_linter: RwLock<ServerLinter>,
     diagnostics_report_map: RwLock<ConcurrentHashMap<String, Vec<DiagnosticReport>>>,
     options: Mutex<Options>,
-    nested_configs: RwLock<ConcurrentHashMap<PathBuf, ConfigStore>>,
+    nested_configs: RwLock<ConcurrentHashMap<PathBuf, Config>>,
 }
 
 impl WorkspaceWorker {

@@ -7,7 +7,7 @@ use log::{debug, warn};
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use tower_lsp_server::lsp_types::Uri;
 
-use oxc_linter::{ConfigStore, ConfigStoreBuilder, LintOptions, Linter, Oxlintrc};
+use oxc_linter::{Config, ConfigStore, ConfigStoreBuilder, LintOptions, Linter, Oxlintrc};
 use tower_lsp_server::UriExt;
 
 use crate::linter::{
@@ -29,7 +29,7 @@ impl ServerLinter {
     pub fn create_nested_configs(
         root_uri: &Uri,
         options: &Options,
-    ) -> ConcurrentHashMap<PathBuf, ConfigStore> {
+    ) -> ConcurrentHashMap<PathBuf, Config> {
         // nested config is disabled, no need to search for configs
         if !options.use_nested_configs() {
             return ConcurrentHashMap::default();
@@ -118,7 +118,7 @@ impl ServerLinter {
     pub fn create_server_linter(
         root_uri: &Uri,
         options: &Options,
-        nested_configs: &ConcurrentHashMap<PathBuf, ConfigStore>,
+        nested_configs: &ConcurrentHashMap<PathBuf, Config>,
     ) -> Self {
         let root_path = root_uri.to_file_path().unwrap();
         let relative_config_path = options.config_path.clone();
@@ -155,21 +155,20 @@ impl ServerLinter {
             config_builder.plugins().has_import()
         };
 
-        let config_store = config_builder.build().expect("Failed to build config store");
+        let config = config_builder.build().expect("Failed to build config store");
 
         let lint_options = LintOptions { fix: options.fix_kind(), ..Default::default() };
 
-        let linter = if use_nested_config {
+        let nested_configs = if use_nested_config {
             let nested_configs = nested_configs.pin();
-            let nested_configs_copy: FxHashMap<PathBuf, ConfigStore> = nested_configs
+            nested_configs
                 .iter()
                 .map(|(key, value)| (key.clone(), value.clone()))
-                .collect::<FxHashMap<_, _>>();
-
-            Linter::new_with_nested_configs(lint_options, config_store, nested_configs_copy)
+                .collect::<FxHashMap<_, _>>()
         } else {
-            Linter::new(lint_options, config_store)
+            FxHashMap::default()
         };
+        let linter = Linter::new(lint_options, ConfigStore::new(config, nested_configs));
 
         let isolated_linter = IsolatedLintHandler::new(
             linter,
