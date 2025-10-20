@@ -1990,11 +1990,11 @@ fn main() {
         Ok(Ok(body)) => {
             let allocator = Allocator::default();
             let source_type = SourceType::from_path(rule_src_path).unwrap();
-            let debug_mode = false;
             let mut ret = Parser::new(&allocator, &body, source_type).parse();
             let semantic_builder = SemanticBuilder::new();
             let semantic = semantic_builder.build(&ret.program).semantic;
-            let mut config = RuleConfig::new(semantic, false);
+            let debug_mode = true;
+            let mut config = RuleConfig::new(semantic, debug_mode);
             // TODO: Use the tasks/lint_rules package to get the runtime config object from javascript
             // and parse it here to resolve values of expressions.
             config.visit_program(&ret.program);
@@ -2049,8 +2049,10 @@ fn main() {
             }
             if rule_config_output.has_errors {
                 println!("Rule config parsed, but with fatal errors. Not writing config.");
+                exit(1);
             } else if config.has_errors {
                 println!("Rule config parsed, but with errors.");
+                exit(1);
             } else {
                 println!("Rule config parsed.");
             }
@@ -2073,7 +2075,10 @@ fn main() {
         }
     }
 
+    #[expect(unused_variables)]
     let rule_name = &context.kebab_rule_name;
+    exit(0);
+    #[expect(unreachable_code)]
     let template = template::Template::with_context(&context);
     if let Err(err) = template.render(rule_kind) {
         eprintln!("failed to render {rule_name} rule template: {err}");

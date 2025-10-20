@@ -278,7 +278,7 @@ export const updateImplementedStatus = async (ruleEntries) => {
   for (const name of implementedRuleNames) {
     const rule = ruleEntries.get(name);
     if (rule) rule.isImplemented = true;
-    else console.log(`👀 ${name} is implemented but not found in their rules`);
+    // else console.log(`👀 ${name} is implemented but not found in their rules`);
   }
 };
 

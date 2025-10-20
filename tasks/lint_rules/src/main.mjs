@@ -1,6 +1,5 @@
 import { parseArgs } from 'node:util';
 import { ALL_TARGET_PLUGINS, createESLintLinter, loadTargetPluginRules } from './eslint-rules.mjs';
-import { renderMarkdown } from './markdown-renderer.mjs';
 import {
   createRuleEntries,
   overrideTypeScriptPluginStatusWithEslintPluginStatus as syncTypeScriptPluginStatusWithEslintPluginStatus,
@@ -9,7 +8,8 @@ import {
   updateImplementedStatus,
   updateNotSupportedStatus,
 } from './oxlint-rules.mjs';
-import { updateGitHubIssue } from './result-reporter.mjs';
+import { spawn } from 'node:child_process';
+import { createWriteStream, mkdirSync } from 'node:fs';
 
 const HELP = `
 Usage:
@@ -62,23 +62,66 @@ void (async () => {
   await syncVitestPluginStatusWithJestPluginStatus(ruleEntries);
   syncUnicornPluginStatusWithEslintPluginStatus(ruleEntries);
 
+  /** @type {Map<string, string[]>} */
+  const failedRules = new Map();
+  for (const [fullRuleName, rule] of ruleEntries) {
+    if (rule.isNotSupported) continue;
+    const [pluginName, ruleName] = fullRuleName.split('/', 2);
+
+    const justCommand = `new-${pluginName === "eslint" ? "" : `${pluginName}-`}rule`;
+    /** @type {string[]} */
+    const logs = [];
+    const success = await /** @type {Promise<boolean>} */(new Promise((resolve, reject) => {
+      const proc = spawn('just', [justCommand, ruleName], {});
+      if (!proc) {
+        reject(new Error('process failed'));
+      }
+      proc.stdout?.on('data', (data) => {
+        process.stdout.write(data.toString());
+        logs.push(data.toString());
+      });
+      proc.stderr?.on('data', (data) => {
+        process.stderr.write(data.toString())
+        logs.push(data.toString());
+      });
+      proc.on('exit', (code) => {
+        if (code !== 0) {
+          resolve(false);
+        } else {
+          resolve(true);
+        }
+      });
+    }));
+    // if (failedRules.size > 0) break;
+    const parentDir = `./logs/${success ? 'success' : 'failed'}`;
+    mkdirSync(parentDir, { recursive: true });
+    const logFilePath = `${parentDir}/${fullRuleName.replaceAll('/', '__')}_log.txt`;
+    const logStream = createWriteStream(logFilePath, { flags: 'a' });
+    logStream.write(`Failed to run ${fullRuleName}:\n`);
+    for (const log of logs) {
+      logStream.write(log + '\n');
+    }
+    logStream.end();
+  }
+  console.log(failedRules.size, 'rules failed to run');
+
   //
   // Render list and update if necessary
   //
-  const results = await Promise.allSettled(
-    Array.from(targetPluginNames).map((pluginName) => {
-      const pluginMeta = /** @type {import("./eslint-rules.mjs").TargetPluginMeta} */ (
-        ALL_TARGET_PLUGINS.get(pluginName)
-      );
-      const content = renderMarkdown(pluginName, pluginMeta, ruleEntries);
-
-      if (!values.update) return Promise.resolve(content);
-      // Requires `env.GITHUB_TOKEN`
-      return updateGitHubIssue(pluginMeta, content);
-    }),
-  );
-  for (const result of results) {
-    if (result.status === 'fulfilled') console.log(result.value);
-    if (result.status === 'rejected') console.error(result.reason);
-  }
+  // const results = await Promise.allSettled(
+  //   Array.from(targetPluginNames).map((pluginName) => {
+  //     const pluginMeta = /** @type {import("./eslint-rules.mjs").TargetPluginMeta} */ (
+  //       ALL_TARGET_PLUGINS.get(pluginName)
+  //     );
+  //     const content = renderMarkdown(pluginName, pluginMeta, ruleEntries);
+  //
+  //     if (!values.update) return Promise.resolve(content);
+  //     // Requires `env.GITHUB_TOKEN`
+  //     return updateGitHubIssue(pluginMeta, content);
+  //   }),
+  // );
+  // for (const result of results) {
+  //   if (result.status === 'fulfilled') console.log(result.value);
+  //   if (result.status === 'rejected') console.error(result.reason);
+  // }
 })();
